@@ -17,8 +17,13 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 # Download dependencies
 include(cmake/DownloadDependencies.cmake)
+find_package(Threads REQUIRED)
 
 # Create the tbb-python-example executable
 add_executable(tbb-python-example "examples/tbb-python.cpp")
 target_compile_options(tbb-python-example PRIVATE ${WARNING_FLAGS})
-target_link_libraries(tbb-python-example PRIVATE TBB::tbb)
+target_link_libraries(tbb-python-example
+    PRIVATE TBB::tbb
+    PRIVATE pybind11::embed
+    PRIVATE Threads::Threads
+)
