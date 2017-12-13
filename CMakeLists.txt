@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.5.1)
 
 project(tbb-python CXX)
 
+# Set default compiler flags
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(WARNING_FLAGS "-Wall" "-Wextra")
+
 # Create compile_commands.json
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -13,3 +18,6 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 # Download dependencies
 include(cmake/DownloadDependencies.cmake)
 
+# Create the tbb-python-example executable
+add_executable(tbb-python-example "examples/tbb-python.cpp")
+target_compile_options(tbb-python-example PRIVATE ${WARNING_FLAGS})
