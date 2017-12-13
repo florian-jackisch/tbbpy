@@ -21,3 +21,4 @@ include(cmake/DownloadDependencies.cmake)
 # Create the tbb-python-example executable
 add_executable(tbb-python-example "examples/tbb-python.cpp")
 target_compile_options(tbb-python-example PRIVATE ${WARNING_FLAGS})
+target_link_libraries(tbb-python-example PRIVATE TBB::tbb)
