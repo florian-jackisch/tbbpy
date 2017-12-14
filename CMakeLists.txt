@@ -5,7 +5,7 @@ project(tbb-python CXX)
 # Set default compiler flags
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(WARNING_FLAGS "-Wall" "-Wextra")
+set(WARNING_FLAGS "-Wall" "-Wextra" "-Wno-attributes")
 
 # Create compile_commands.json
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
