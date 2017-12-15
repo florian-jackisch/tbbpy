@@ -1,5 +1,5 @@
-#include <future>
-#include <iostream>
+#include <cmath>
+
 #include <mutex>
 #include <string>
 #include <vector>
@@ -7,8 +7,6 @@
 #include <pybind11/embed.h>
 #include <pybind11/numpy.h>
 #include <tbb/flow_graph.h>
-
-namespace tbbpy {
 
 static std::mutex pythonGil;
 
@@ -93,8 +91,6 @@ pybind11::array copyToNumpyArray(const std::vector<T> &v) {
   return pybind11::array(v.size(), v.data());
 }
 
-}  // namespace tbbpy
-
 class Linspace {
  public:
   Linspace(size_t maxCount)
@@ -105,9 +101,9 @@ class Linspace {
       return false;
     }
     auto nparray = interpreter([this]() {
-      return np.attr("linspace")(0, 10).cast<pybind11::array_t<double>>();
+      return np.attr("linspace")(0, 2 * M_PI).cast<pybind11::array_t<double>>();
     });
-    out = tbbpy::copyToVector(nparray);
+    out = copyToVector(nparray);
     ++count;
     return true;
   }
@@ -115,27 +111,8 @@ class Linspace {
  private:
   size_t count = 0;
   const size_t maxCount;
-  tbbpy::PythonInterpreter interpreter;
+  PythonInterpreter interpreter;
   pybind11::module np;
-};
-
-class Print {
- public:
-  Print() : np{pybind11::module::import("numpy")} {}
-
-  void operator()(const std::vector<double> &v) {
-    interpreter([this, &v]() { print(v); });
-  }
-
- private:
-  tbbpy::PythonInterpreter interpreter;
-  pybind11::module np;
-
-  void print(const std::vector<double> &v) {
-    auto a = np.attr("zeros")(v.size()).cast<pybind11::array_t<double>>();
-    std::copy(v.begin(), v.end(), a.mutable_data());
-    pybind11::print(a);
-  }
 };
 
 class Cos {
@@ -147,31 +124,48 @@ class Cos {
   }
 
  private:
-  tbbpy::PythonInterpreter interpreter;
+  PythonInterpreter interpreter;
   pybind11::module np;
 
   std::vector<double> cos(const std::vector<double> &v) {
-    auto b = np.attr("cos")(tbbpy::copyToNumpyArray(v))
-                 .cast<pybind11::array_t<double>>();
-    return tbbpy::copyToVector(b);
+    auto b =
+        np.attr("cos")(copyToNumpyArray(v)).cast<pybind11::array_t<double>>();
+    return copyToVector(b);
   }
 };
 
 int main() {
-  using namespace tbbpy;
   using namespace tbb::flow;
 
+  {
+    auto p = PythonInterpreter{};
+    p([]() {
+      pybind11::print("Using python from within a multithreaded C++ program.");
+    });
+  }
+
   graph g;
-  Linspace linspace(10);
+  // The source produes
+  Linspace linspace(1000);
   source_node<std::vector<double>> sourceNode{
       g, [&linspace](auto &out) { return linspace(out); }};
+
   Cos cos;
   function_node<std::vector<double>, std::vector<double>> cosNode{
       g, 1, [&cos](const auto &v) { return cos(v); }};
-  Print print;
-  function_node<std::vector<double>> printNode{
-      g, 1, [&print](const auto &v) { print(v); }};
+
+  unsigned count = 0;
+  function_node<std::vector<double>> countNode{
+      g, 1, [&count](const auto &) { ++count; }};
   make_edge(sourceNode, cosNode);
-  make_edge(cosNode, printNode);
+  make_edge(cosNode, countNode);
   g.wait_for_all();
+
+  {
+    auto p = PythonInterpreter{};
+    p([count]() {
+      pybind11::exec("print('Worked with " + std::to_string(count) +
+                     " vectors in python and C++!')");
+    });
+  }
 }
