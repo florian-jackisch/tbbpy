@@ -140,7 +140,13 @@ int main() {
   {
     auto p = PythonInterpreter{};
     p([]() {
-      pybind11::print("Using python from within a multithreaded C++ program.");
+      pybind11::exec(R"(
+        import sys
+        print('Using python from within a multithreaded C++ program.')
+        print()
+        print(sys.version)
+        print()
+      )");
     });
   }
 
